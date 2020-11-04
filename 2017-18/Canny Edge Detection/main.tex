@@ -1,0 +1,84 @@
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage[utf8x]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{authblk}
+\usepackage[british]{babel}
+\usepackage{wrapfig}
+\usepackage{layout}
+\usepackage{flexisym}
+\usepackage{listings}
+\title{Transformations/Linear}
+
+
+\title{Canny Edge Detection}
+
+\author{George Tang, Neil Thistlewaite}
+\affil{Computer Vision Club}
+\date{January 2017}
+
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+Canny Edge Detection is an edge detection algorithm that uses multiple stages to identify the natural "edges" of objects in an image. This is frequently a necessary preprocessing step for other algorithms, because it reduces an RGB image to a set of edges, highlighting the structure of objects. As such, it has a wide variety of applications in Computer Vision. The algorithm consists of four main steps: apply a filter to remove noise, calculate intensity gradients for each pixel, apply non-maximum suppression, and finally use a double threshold to locate edges. 
+
+\section{Noise Reduction}
+We can apply a Gaussian filter to smooth the image. The Gaussian filter is usually discretized into a 5x5 kernel 
+\[
+G_{5x5}=
+\frac{1}{273}
+\begin{bmatrix}
+    1 & 4  & 7  & 4 & 1\\
+    4 & 16 & 26 & 16 & 4\\
+    7 & 26 & 41 & 26 & 7\\
+    4 & 16 & 26 & 16 & 4\\
+    1 & 4  & 7  & 4 & 1\\
+\end{bmatrix}
+\]
+This comes from the Gaussian formula, with the coefficient in front serving to normalize the sum of the matrix to 1.0. The kernel is applied on every pixel such that the pixel is in the center so the surrounding pixels will be taken into account, an operation called \textit{convolution}. However, for edge pixels, we cannot apply the kernel as the kernel will be out of bounds of the image. We can resolve this by padding the edge of the image, often with zeros, or simply not considering the edge pixels.  
+
+\section{Intensity Gradient}
+An edge is indicated by change in the intensity of the pixel values (gradient; in 2D dimensions the derivative). Since an image is two-dimensional, we must consider the change the gradient in the x and y directions, denoted by \(G_x\) and \(G_y\). We can compute the gradient components of a pixel with a specific type of convolution that uses the local pixels values, an edge detection operator. We will be using the Sobel Operator for its simplicity:
+\[
+G_x
+=
+\begin{bmatrix}
+    -1&0&+1\\
+    -2&0&+2\\
+    -1&0&+1\\
+\end{bmatrix}
+,\  
+G_y
+=
+\begin{bmatrix}
+    +1&+2&+1\\
+    0&0&0\\
+    -1&-2&-1\\
+\end{bmatrix}
+\]
+Once we have that components, the magnitude and angle of the gradient is:
+\[
+G = \sqrt{G_x^2 + G_y^2}, \
+\theta = arctan(G_y, G_x)
+\]
+\section{Non-Maximum Suppression}
+Non-Maximum Suppression seeks to only preserve the max gradients (edges) while setting the rest of the pixel values to 0. 
+\par
+Once we have the gradients, we will relate them to directions that can be traced in an image: the 8 cardinal directions corresponding to the adjacent pixels of a pixel. We do this by using looking at what range the angle of the gradient falls into (e.g. if the gradient points east, if will fall in the range (-22.5, 22.5)). Because we want to consider both directions of the direction of the gradient, we also include the opposite range, (in this case, (157.5, 202.5)), when we consider a range. Thus the total range considered is (-22.5, 22.5)) U (157.5, 202.5).
+\par
+Once we have the directions, we can determine the adjacent pixels considered. For our example, they will be the pixels in the east and west directions. Now, for each pixel is: compare the strength of the gradient with the edge strength of the adjacent pixels in the direction based on the ranges determined. 
+\par
+There are a variety of ways to implement this. One common way is two pass a 3x3 filter (account for 8 directions) across the image, and if the center pixel's gradient is not greater than those of the two neighbors in the gradient direction, then set the pixel value to 0.
+
+\section{Hysteresis Thresholding}
+Finally, we need to decide which of the remainder gradients and which are not. For this, we need two threshold values, maxvalue and minvalue. All gradients greater than maxvalue will be considered an edge and those under minvalue will not be. Those in between will be determined based on whether they are connected to and edge by following the chain of local maximum gradients along the edge.
+
+
+\end{document}
